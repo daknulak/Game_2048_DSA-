@@ -2,7 +2,6 @@ import pygame
 from constant import *
 from logic import get_backup, restore_backup, generate_tiles, move_tiles, check_game_over
 
-# Khởi tạo cửa sổ (chiều cao = bàn chơi + khu vực UI)
 window = pygame.display.set_mode((width, height + ui_height)) 
 pygame.display.set_caption("2048 UIT - Project")
 
@@ -53,6 +52,10 @@ def draw_all(window, tiles, undo_rect, status):
     pygame.display.update() 
 
 def main(window):
+    """
+    Main loop của trò chơi
+    Quản lý các bước di chuyển của người dùn, cơ chế Stack (Undo) và cập nhật trạng thái game
+    """
     clock = pygame.time.Clock() 
     tiles = generate_tiles() 
     undo_stack = []      # Khởi tạo Stack lưu trữ các trạng thái
@@ -76,13 +79,13 @@ def main(window):
             # Xử lý khi game đang chơi
             if status == "playing":
                 
-                # 1. Bắt sự kiện Click chuột vào nút Undo
+                # 1. Click chuột vào nút Undo
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if undo_rect.collidepoint(event.pos):
                         if undo_stack:
                             tiles = restore_backup(undo_stack.pop())
 
-                # 2. Bắt sự kiện phím bấm
+                # 2. Phím bấm
                 if event.type == pygame.KEYDOWN:
                     direction = None
                     if event.key == pygame.K_LEFT: direction = "left"
