@@ -1,0 +1,77 @@
+import sys
+
+sys.setrecursionlimit(2000)
+
+class Node:
+    def __init__(self, val):
+        self.val = val
+        self.left = None
+        self.right = None
+
+def insert(root, val):
+    if root is None:
+        return Node(val)
+    if val < root.val:
+        root.left = insert(root.left, val)
+    elif val > root.val:
+        root.right = insert(root.right, val)
+    return root
+
+def display_tree(node, depth, active_pipes):
+    if not node:
+        return
+
+    active_pipes.add(depth)
+    display_tree(node.left, depth + 1, active_pipes)
+    active_pipes.remove(depth)
+
+    prefix = ""
+    for i in range(depth):
+        if i in active_pipes:
+            prefix += "|   "
+        else:
+            prefix += "    "
+    
+    if depth == 0:
+        print(str(node.val))
+    else:
+        print(f"{prefix}|---{node.val}")
+
+    if node.right:
+        display_right_branch(node.right, depth + 1, active_pipes, depth)
+
+def display_right_branch(node, depth, active_pipes, parent_depth):
+    if not node:
+        return
+    
+    active_pipes.add(parent_depth)
+    display_tree(node.left, depth + 1, active_pipes)
+    
+    prefix = ""
+    for i in range(depth):
+        if i in active_pipes:
+            prefix += "|   "
+        else:
+            prefix += "    "
+    print(f"{prefix}|---{node.val}")
+    
+    active_pipes.remove(parent_depth)
+    display_tree(node.right, depth + 1, active_pipes)
+
+def main():
+    input_data = sys.stdin.read().split()
+    if not input_data:
+        return
+    
+    root = None
+    for x in input_data:
+        val = int(x)
+        if val == 0:
+            break
+        root = insert(root, val)
+    
+    if root:
+        display_tree(root, 0, set())
+
+if __name__ == "__main__":
+    main()
