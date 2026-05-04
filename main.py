@@ -1,17 +1,19 @@
 import pygame
 from constant import *
-from logic import get_backup, restore_backup, generate_tiles, move_tiles, check_game_over
+from logic import get_backup, restore_backup, generate_tiles, move_tiles, check_game_over, get_high_score, save_high_score
 
 window = pygame.display.set_mode((width, height + ui_height)) 
 pygame.display.set_caption("2048 UIT - Project")
 
-def draw_interface(window, undo_rect, restart_rect, status, score):
+def draw_interface(window, undo_rect, restart_rect, status, score, high_score):
     # 1. Vẽ nền cho khu vực UI phía dưới
     pygame.draw.rect(window, (250, 248, 239), (0, height, width, ui_height))
     
     # 2. Vẽ điểm số (Score)
     score_text = font_small.render(f"SCORE: {score}", True, font_color)
+    high_score_text = font_small.render(f"BEST: {high_score}", True, font_color)
     window.blit(score_text, (20, height + (ui_height/2 - score_text.get_height()/2)))
+    window.blit(high_score_text, (20, height + (ui_height/2 - high_score_text.get_height()/2) + 30))
 
     # 3. Vẽ nút Undo
     pygame.draw.rect(window, undo_btn_color, undo_rect, border_radius=8)
@@ -45,7 +47,7 @@ def draw_grid(window):
         pygame.draw.line(window, outline_color, (x, 0), (x, height), outline_thickness)
     pygame.draw.rect(window, outline_color, (0, 0, width, height), outline_thickness)
 
-def draw_all(window, tiles, undo_rect, restart_rect, status, score):
+def draw_all(window, tiles, undo_rect, restart_rect, status, score, high_score):
     window.fill(background_color) 
     
     for tile in tiles.values():
@@ -54,7 +56,7 @@ def draw_all(window, tiles, undo_rect, restart_rect, status, score):
     draw_grid(window)           
     
     # TRUYỀN ĐÚNG THỨ TỰ VÀO ĐÂY:
-    draw_interface(window, undo_rect, restart_rect, status, score) 
+    draw_interface(window, undo_rect, restart_rect, status, score, high_score) 
     
     pygame.display.update()
 def main(window):
@@ -63,6 +65,7 @@ def main(window):
     undo_stack = []      
     status = "playing"   
     score = 0 # <--- Khởi tạo biến điểm số
+    high_score = get_high_score() 
     
     # Định nghĩa vị trí 2 nút bấm (Căn giữa và lệch nhau 1 chút)
     undo_rect = pygame.Rect(width // 2 - 60, height + 25, 120, 50)
@@ -71,7 +74,7 @@ def main(window):
     run = True 
     while run:
         clock.tick(fps)
-        draw_all(window, tiles, undo_rect, restart_rect, status, score)
+        draw_all(window, tiles, undo_rect, restart_rect, status, score, high_score)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -108,10 +111,15 @@ def main(window):
                         # PUSH VÀO STACK: Lưu lại trạng thái Bảng và Điểm hiện tại
                         undo_stack.append((get_backup(tiles), score))
                         if len(undo_stack) > 20: undo_stack.pop(0)
+
                         
                         # Di chuyển và nhận số điểm cộng thêm
-                        gained = move_tiles(window, tiles, clock, direction, lambda w, t: draw_all(w, t, undo_rect, restart_rect, status, score))
+                        gained = move_tiles(window, tiles, clock, direction, lambda w, t: draw_all(w, t, undo_rect, restart_rect, status, score, high_score))
                         score += gained # Cộng điểm
+
+                        if score > high_score:
+                            high_score = score
+                            save_high_score(high_score)
                         
                         status = check_game_over(tiles)
                     

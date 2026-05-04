@@ -10,7 +10,7 @@ cols = 4
 rect_height = height // rows
 rect_width = width // cols
 outline_thickness = 10 
-move_vel = 20 
+move_vel = 40
 
 outline_color = (187, 173, 160) 
 background_color = (205, 192, 180)

@@ -1,3 +1,4 @@
+import os
 import random
 import math
 import pygame
@@ -24,13 +25,16 @@ class Tile:
             row (int): Chỉ số hàng trong ma trận (0-3).
             col (int): Chỉ số cột trong ma trận (0-3).
         """
+        self.scale = 1.0
         self.value = value
         self.row = row
         self.col = col
         #toạ độ x, y
         self.x = col * rect_width
         self.y = row * rect_height
-    
+    def play_pop_animation(self):
+        """Kích hoạt hiệu ứng nảy lên"""
+        self.scale = 1.2
     def get_color(self):
         """
         Tính toán màu sắc dựa trên giá trị của ô số.
@@ -41,15 +45,45 @@ class Tile:
 
     def draw(self, window):
         """
-        Vẽ ô số và giá trị của nó lên màn hình
+        Vẽ ô số và giá trị của nó lên màn hình (Có kèm hiệu ứng Pop-up)
         """
+        # --- BƯỚC 1: XỬ LÝ HIỆU ỨNG THU NHỎ DẦN ---
+        # Kiểm tra xem biến scale đã có chưa (đề phòng bạn quên khởi tạo ở __init__)
+        if not hasattr(self, 'scale'):
+            self.scale = 1.0
+            
+        if self.scale > 1.0:
+            self.scale -= 0.05  # Tốc độ xẹp xuống (0.05 là mượt, bạn có thể chỉnh)
+            if self.scale < 1.0:
+                self.scale = 1.0
+
+        # --- BƯỚC 2: TÍNH KÍCH THƯỚC MỚI SAU KHI PHÓNG TO ---
+        current_w = rect_width * self.scale
+        current_h = rect_height * self.scale
+
+        # --- BƯỚC 3: TÍNH TOẠ ĐỘ VẼ (Tính từ tâm để phóng to đều ra xung quanh) ---
+        center_x = self.x + (rect_width / 2)
+        center_y = self.y + (rect_height / 2)
+        
+        draw_x = center_x - (current_w / 2)
+        draw_y = center_y - (current_h / 2)
+
         color = self.get_color()
-        #vẽ hình vuông nền của ô số
-        pygame.draw.rect(window, color, (self.x, self.y, rect_width, rect_height)) 
+        
+        # --- BƯỚC 4: VẼ HÌNH VUÔNG NỀN (Dùng kích thước và tọa độ mới) ---
+        # Mình thêm border_radius=5 vào để ô số bo tròn các góc nhìn xịn như bản gốc
+        pygame.draw.rect(window, color, (draw_x, draw_y, current_w, current_h), border_radius=5) 
+        
+        # --- BƯỚC 5: VẼ CHỮ SỐ ---
         text = font.render(str(self.value), 1, font_color) 
-        #tính toán căn giữa chữ vào trong ô số
-        window.blit(text, (self.x + (rect_width/2 - text.get_width()/2), 
-                           self.y + (rect_height/2 - text.get_height()/2)))
+        
+        # Nâng cao (Tùy chọn): Chữ cũng to lên theo cái khung
+        # Nếu không thích chữ to lên, bạn chỉ cần xóa dòng pygame.transform.scale này đi
+        text = pygame.transform.smoothscale(text, (int(text.get_width() * self.scale), int(text.get_height() * self.scale)))
+        
+        # Căn giữa chữ dựa trên điểm tâm đã tính ở Bước 3
+        window.blit(text, (center_x - text.get_width() / 2, 
+                           center_y - text.get_height() / 2))
 
     def set_pos(self, ceil=False):
         """
@@ -184,6 +218,9 @@ def move_tiles(window, tiles, clock, direction, draw_func):
                     next_tile.value *= 2
                     #điểm
                     score_gained += next_tile.value
+                    #hieu ứng pop-up
+                    next_tile.play_pop_animation()
+                    
                     blocks.add(next_tile)
                     to_remove.append(tile) # Đánh dấu xóa để không bị nạp vào Dict
                     updated = True
@@ -229,3 +266,24 @@ def check_game_over(tiles):
                 return "playing"
 
     return "lose"
+
+def get_high_score():
+    try:
+        # Cố gắng mở file để đọc
+        with open("high_score.txt", "r") as f:
+            content = f.read().strip()
+            if content:
+                return int(content)
+            return 0
+    except FileNotFoundError:
+        # LƯỚI AN TOÀN 1: Nếu file chưa từng được tạo (chạy lần đầu), mặc định điểm là 0
+        return 0
+    except ValueError:
+        # LƯỚI AN TOÀN 2: Nếu file bị lỗi (ai đó lỡ gõ chữ vào file), mặc định điểm là 0
+        return 0
+def save_high_score(score):
+    """
+    Lưu điểm cao nhất vào file.
+    """
+    with open("high_score.txt", "w") as f:
+        f.write(str(score))
