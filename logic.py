@@ -3,6 +3,10 @@ import random
 import math
 import pygame
 from constant import * 
+def get_save_path():
+    """Xác định đường dẫn lưu trữ điểm cao (high score) trên máy người dùng"""
+    home_dir = os.path.expanduser("~")
+    return os.path.join(home_dir, "high_score_2048.txt")
 class Tile:
     """
     Đại diện cho một ô số (Square) trên bàn chơi.
@@ -47,21 +51,20 @@ class Tile:
         """
         Vẽ ô số và giá trị của nó lên màn hình (Có kèm hiệu ứng Pop-up)
         """
-        # --- BƯỚC 1: XỬ LÝ HIỆU ỨNG THU NHỎ DẦN ---
         # Kiểm tra xem biến scale đã có chưa (đề phòng bạn quên khởi tạo ở __init__)
         if not hasattr(self, 'scale'):
             self.scale = 1.0
             
         if self.scale > 1.0:
-            self.scale -= 0.05  # Tốc độ xẹp xuống (0.05 là mượt, bạn có thể chỉnh)
+            self.scale -= 0.05  # Tốc độ giảm xuống 
             if self.scale < 1.0:
                 self.scale = 1.0
 
-        # --- BƯỚC 2: TÍNH KÍCH THƯỚC MỚI SAU KHI PHÓNG TO ---
+        #TÍNH KÍCH THƯỚC MỚI SAU KHI PHÓNG TO 
         current_w = rect_width * self.scale
         current_h = rect_height * self.scale
 
-        # --- BƯỚC 3: TÍNH TOẠ ĐỘ VẼ (Tính từ tâm để phóng to đều ra xung quanh) ---
+        #TÍNH TOẠ ĐỘ VẼ (Tính từ tâm để phóng to đều ra xung quanh)
         center_x = self.x + (rect_width / 2)
         center_y = self.y + (rect_height / 2)
         
@@ -70,18 +73,15 @@ class Tile:
 
         color = self.get_color()
         
-        # --- BƯỚC 4: VẼ HÌNH VUÔNG NỀN (Dùng kích thước và tọa độ mới) ---
-        # Mình thêm border_radius=5 vào để ô số bo tròn các góc nhìn xịn như bản gốc
+        #VẼ HÌNH VUÔNG NỀN (Dùng kích thước và tọa độ mới)
         pygame.draw.rect(window, color, (draw_x, draw_y, current_w, current_h), border_radius=5) 
         
-        # --- BƯỚC 5: VẼ CHỮ SỐ ---
+        #vẽ chữ số
         text = font.render(str(self.value), 1, font_color) 
         
-        # Nâng cao (Tùy chọn): Chữ cũng to lên theo cái khung
-        # Nếu không thích chữ to lên, bạn chỉ cần xóa dòng pygame.transform.scale này đi
         text = pygame.transform.smoothscale(text, (int(text.get_width() * self.scale), int(text.get_height() * self.scale)))
         
-        # Căn giữa chữ dựa trên điểm tâm đã tính ở Bước 3
+        # Căn giữa chữ dựa trên toạ độ trung tâm đã tính
         window.blit(text, (center_x - text.get_width() / 2, 
                            center_y - text.get_height() / 2))
 
@@ -143,6 +143,10 @@ def generate_tiles():
 def update_tiles(window, tiles, sorted_tiles):
     """
     Đồng bộ hoá Dict 'tiles' dựa trên danh sách các ô số đã thay đổi vị trí
+    Args:
+        window: màn hình hiển hiển thị
+        tiles (dict): bàn cờ hiện tại cần được cập nhật
+        sorted_tiles (list): danh sách các ô số đã được sắp xếp lại sau khi trượt
     """
     tiles.clear()
     for tile in sorted_tiles:
@@ -151,6 +155,10 @@ def update_tiles(window, tiles, sorted_tiles):
 def end_move(tiles):
     """
     Kiểm tra thua cuộc và sinh ô số mới (2 hoặc 4)
+    Args:
+        tiles (dict): bàn cờ hiện tại
+    Returns:
+        str: 'lost' nếu bảng đã đầy 16 ô, ngược lại trở về 'continue'
     """
     if len(tiles) == 16:
         return "lost"
@@ -159,6 +167,17 @@ def end_move(tiles):
     return "continue"
 
 def move_tiles(window, tiles, clock, direction, draw_func):
+    """Xử lý logic dịch chuyển và gộp các ô số theo hướng chỉ định
+    Args:
+        window: Cửa sổ game để vẽ lại sau mỗi bước di chuyển
+        tiles: Dict chứa tất cả các ô số hiện tại trên bàn chơi
+        clock: Đồng hồ để kiểm soát tốc độ animation
+        direction: Hướng di chuyển ("left", "right", "up", "down")
+        draw_func: Hàm vẽ lại bàn chơi sau mỗi bước di chuyển
+    Returns:
+        score_gained: Điểm số thu được sau bước di chuyển (từ việc gộp các ô số)
+        board_changed: Boolean cho biết liệu có sự thay đổi nào trên bàn chơi hay không (để quyết định có nên sinh ô số mới hay không)
+    """
     updated = True
     blocks = set()
     score_gained = 0
@@ -279,22 +298,27 @@ def check_game_over(tiles):
     return "lose"
 
 def get_high_score():
+    """
+    Đọc điểm cao nhất đã lưu từ file. Nếu file không tồn tại hoặc có lỗi, trả về 0.
+    """ 
     try:
-        # Cố gắng mở file để đọc
-        with open("high_score.txt", "r") as f:
+        path = get_save_path()
+        # Kiểm tra xem file có tồn tại không trước khi mở
+        if not os.path.exists(path):
+            return 0
+            
+        with open(path, "r") as f:
             content = f.read().strip()
             if content:
                 return int(content)
-            return 0
-    except FileNotFoundError:
-        # LƯỚI AN TOÀN 1: Nếu file chưa từng được tạo (chạy lần đầu), mặc định điểm là 0
-        return 0
-    except ValueError:
-        # LƯỚI AN TOÀN 2: Nếu file bị lỗi (ai đó lỡ gõ chữ vào file), mặc định điểm là 0
+            return 0 # Nếu file trống thì trả về 0
+    except Exception:
+        # Nếu có bất kỳ lỗi gì (đọc file, ép kiểu...), mặc định trả về 0
         return 0
 def save_high_score(score):
-    """
-    Lưu điểm cao nhất vào file.
-    """
-    with open("high_score.txt", "w") as f:
-        f.write(str(score))
+    """Lưu trữ điểm cao nhất vào file"""
+    try:
+        with open(get_save_path(), "w") as f:
+            f.write(str(score))
+    except Exception:
+        pass

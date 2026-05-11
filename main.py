@@ -6,6 +6,15 @@ window = pygame.display.set_mode((width, height + ui_height))
 pygame.display.set_caption("2048 UIT - Project")
 
 def draw_interface(window, undo_rect, restart_rect, status, score, high_score):
+    """vẽ giao diện người dùng bao gồm điểm số, nút Undo, nút Restart và lớp phủ khi thắng/thua.
+    Args:
+        window: màn hình
+        undo_rect: pygame.Rect của nút Undo
+        restart_rect: pygame.Rect của nút Restart
+        status: trạng thái hiện tại của trò chơi ("playing", "win", "lose")
+        score: điểm số hiện tại
+        high_score: điểm cao nhất đã lưu
+        """
     # 1. Vẽ nền cho khu vực UI phía dưới
     pygame.draw.rect(window, (250, 248, 239), (0, height, width, ui_height))
     
@@ -38,7 +47,10 @@ def draw_interface(window, undo_rect, restart_rect, status, score, high_score):
         result_text = font.render(msg, True, (255, 255, 255))
         window.blit(result_text, (width//2 - result_text.get_width()//2, height//2))
 def draw_grid(window):
-    """Vẽ lưới ngăn cách các ô."""
+    """Vẽ lưới ngăn cách các ô.
+    Args:
+        window: màn hình hiển thị chíh của game
+        """
     for row in range(1, rows):
         y = row * rect_height
         pygame.draw.line(window, outline_color, (0, y), (width, y), outline_thickness)
@@ -48,6 +60,16 @@ def draw_grid(window):
     pygame.draw.rect(window, outline_color, (0, 0, width, height), outline_thickness)
 
 def draw_all(window, tiles, undo_rect, restart_rect, status, score, high_score):
+    """Vẽ tất cả các thành phần của trò chơi: nền, ô số, lưới và giao diện người dùng.
+    Args:
+        window: màn hình hiển thị chính của game    
+        tiles: dict chứa các ô số hiện tại trên bàn cờ
+        undo_rect: pygame.Rect của nút Undo
+        restart_rect: pygame.Rect của nút Restart
+        status: trạng thái hiện tại của trò chơi ("playing", "win", "lose")
+        score: điểm số hiện tại
+        high_score: điểm cao nhất đã lưu
+        """
     window.fill(background_color) 
     
     for tile in tiles.values():
@@ -60,6 +82,10 @@ def draw_all(window, tiles, undo_rect, restart_rect, status, score, high_score):
     
     pygame.display.update()
 def main(window):
+    """Hàm chính để chạy trò chơi, xử lý các thao tác trượt và cập nhật trạng thái.
+    Args:
+        window: màn hình hiển thị chính của game
+        """
     clock = pygame.time.Clock() 
     tiles = generate_tiles() 
     undo_stack = []      
