@@ -162,31 +162,39 @@ def move_tiles(window, tiles, clock, direction, draw_func):
     updated = True
     blocks = set()
     score_gained = 0
+    board_changed = False
 
-    # SỬA LẠI LAMBDA: Giữ + move_vel ở merge_check, xóa ở move_check
     if direction == "left":
-        sort_func = lambda x: x.col; reverse = False; delta = (-move_vel, 0)
+        sort_func = lambda x: x.col
+        reverse = False
+        delta = (-move_vel, 0)
         boundary_check = lambda tile: tile.col == 0
         get_next_tile = lambda tile: tiles.get(f"{tile.row}{tile.col - 1}")
         merge_check = lambda tile, next_tile: tile.x > next_tile.x + move_vel
         move_check = lambda tile, next_tile: tile.x > next_tile.x + rect_width
         ceil = True
     elif direction == "right":
-        sort_func = lambda x: x.col; reverse = True; delta = (move_vel, 0)
+        sort_func = lambda x: x.col
+        reverse = True
+        delta = (move_vel, 0)
         boundary_check = lambda tile: tile.col == cols - 1
         get_next_tile = lambda tile: tiles.get(f"{tile.row}{tile.col + 1}")
         merge_check = lambda tile, next_tile: tile.x < next_tile.x - move_vel
         move_check = lambda tile, next_tile: tile.x + rect_width < next_tile.x
         ceil = False
     elif direction == "up":
-        sort_func = lambda x: x.row; reverse = False; delta = (0, -move_vel)
+        sort_func = lambda x: x.row
+        reverse = False
+        delta = (0, -move_vel)
         boundary_check = lambda tile: tile.row == 0
         get_next_tile = lambda tile: tiles.get(f"{tile.row - 1}{tile.col}")
         merge_check = lambda tile, next_tile: tile.y > next_tile.y + move_vel
         move_check = lambda tile, next_tile: tile.y > next_tile.y + rect_height
         ceil = True
     elif direction == "down":
-        sort_func = lambda x: x.row; reverse = True; delta = (0, move_vel)
+        sort_func = lambda x: x.row
+        reverse = True
+        delta = (0, move_vel)
         boundary_check = lambda tile: tile.row == rows - 1
         get_next_tile = lambda tile: tiles.get(f"{tile.row + 1}{tile.col}")
         merge_check = lambda tile, next_tile: tile.y < next_tile.y - move_vel
@@ -208,31 +216,31 @@ def move_tiles(window, tiles, clock, direction, draw_func):
             if not next_tile:
                 tile.move(delta)
                 updated = True
+                board_changed = True
             elif tile.value == next_tile.value and tile not in blocks and next_tile not in blocks:
                 if merge_check(tile, next_tile):
                     tile.move(delta)
                     updated = True
+                    board_changed = True
                 else:
-                    # GỘP CHÍNH XÁC: Cho trượt nốt frame cuối cùng để 2 ô đè khít lên nhau
                     tile.move(delta) 
                     next_tile.value *= 2
-                    #điểm
                     score_gained += next_tile.value
-                    #hieu ứng pop-up
                     next_tile.play_pop_animation()
                     
                     blocks.add(next_tile)
-                    to_remove.append(tile) # Đánh dấu xóa để không bị nạp vào Dict
+                    to_remove.append(tile)
                     updated = True
+                    board_changed = True
             elif move_check(tile, next_tile):
                 tile.move(delta)
                 updated = True
+                board_changed = True
             else:
                 continue
             
             tile.set_pos(ceil)
 
-        # XÂY LẠI DICTIONARY AN TOÀN
         new_tiles = {}
         for t in sorted_tiles:
             if t not in to_remove:
@@ -242,8 +250,11 @@ def move_tiles(window, tiles, clock, direction, draw_func):
         tiles.update(new_tiles)
 
         draw_func(window, tiles)
-    end_move(tiles)
-    return score_gained
+
+    if board_changed:
+        end_move(tiles)
+        
+    return score_gained, board_changed
 def check_game_over(tiles):
     """
     Kiểm tra trạng thái game.

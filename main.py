@@ -64,10 +64,9 @@ def main(window):
     tiles = generate_tiles() 
     undo_stack = []      
     status = "playing"   
-    score = 0 # <--- Khởi tạo biến điểm số
+    score = 0 
     high_score = get_high_score() 
     
-    # Định nghĩa vị trí 2 nút bấm (Căn giữa và lệch nhau 1 chút)
     undo_rect = pygame.Rect(width // 2 - 60, height + 25, 120, 50)
     restart_rect = pygame.Rect(width // 2 + 80, height + 25, 150, 50)
 
@@ -81,10 +80,8 @@ def main(window):
                 run = False 
                 break
 
-            # Bấm chuột (Cho phép bấm Restart hoặc Undo ngay cả khi đã Game Over)
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if restart_rect.collidepoint(event.pos):
-                    # CHƠI LẠI: Reset toàn bộ game
                     tiles = generate_tiles()
                     undo_stack.clear()
                     score = 0
@@ -92,13 +89,11 @@ def main(window):
                 
                 elif undo_rect.collidepoint(event.pos):
                     if undo_stack:
-                        # Rút cả bảng tiles và score cũ ra khỏi Stack
                         backup_data, prev_score = undo_stack.pop()
                         tiles = restore_backup(backup_data)
-                        score = prev_score # Trả lại điểm cũ
-                        status = check_game_over(tiles) # Cập nhật lại status (lỡ đang Game Over mà Undo thì cho chơi tiếp)
+                        score = prev_score 
+                        status = check_game_over(tiles)
 
-            # Xử lý khi game đang chơi
             if status == "playing":
                 if event.type == pygame.KEYDOWN:
                     direction = None
@@ -108,14 +103,15 @@ def main(window):
                     elif event.key == pygame.K_DOWN: direction = "down"
 
                     if direction:
-                        # PUSH VÀO STACK: Lưu lại trạng thái Bảng và Điểm hiện tại
                         undo_stack.append((get_backup(tiles), score))
                         if len(undo_stack) > 20: undo_stack.pop(0)
 
+                        gained, moved = move_tiles(window, tiles, clock, direction, lambda w, t: draw_all(w, t, undo_rect, restart_rect, status, score, high_score))
                         
-                        # Di chuyển và nhận số điểm cộng thêm
-                        gained = move_tiles(window, tiles, clock, direction, lambda w, t: draw_all(w, t, undo_rect, restart_rect, status, score, high_score))
-                        score += gained # Cộng điểm
+                        if moved:
+                            score += gained
+                        else:
+                            undo_stack.pop()
 
                         if score > high_score:
                             high_score = score
@@ -123,7 +119,6 @@ def main(window):
                         
                         status = check_game_over(tiles)
                     
-                    # Phím tắt U để Undo
                     if event.key == pygame.K_u:
                         if undo_stack:
                             backup_data, prev_score = undo_stack.pop()
